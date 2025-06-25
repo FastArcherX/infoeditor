@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Server Info Editor</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; background: #181c22; color: #fff; }
+        textarea { width: 100%; height: 200px; font-family: monospace; }
+        #preview {
+            background: rgba(20,24,32,0.95);
+            color: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            margin-top: 1em;
+            min-height: 300px;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 2px 16px #0008;
+        }
+        .center { text-align: center; }
+        .bold { font-weight: bold; }
+        .size-9 { font-size: 9pt; }
+        .size-10 { font-size: 10pt; }
+        .size-14 { font-size: 14pt; }
+        .size-16 { font-size: 16pt; }
+        .size-22 { font-size: 22pt; }
+        .size-46 { font-size: 46pt; }
+        .color-white, .color-fff, .color-ffffffff { color: #fff !important; }
+        .color-grey { color: #bbb; }
+        .color-yellow { color: #ffe066; }
+        .color-red { color: #fd2d2d; }
+        .color-blue { color: #30c9ff; }
+        .color-ff634d { color: #ff634d; }
+        .color-ffaa23 { color: #ffaa23; }
+        .color-23f7ff { color: #23f7ff; }
+        .color-FF4DF6 { color: #FF4DF6; }
+        .color-d2d2d2 { color: #d2d2d2; }
+        .color-279c03 { color: #279c03; }
+        .color-6af50d { color: #6af50d; }
+        .color-1ffa17 { color: #1ffa17; }
+        .color-fdcd2e { color: #fdcd2e; }
+        .color-fd2d2d { color: #fd2d2d; }
+        .color-30c9ff { color: #30c9ff; }
+        .color-ff4df6 { color: #ff4df6; }
+        .color-279c03ff { color: #279c03; }
+        .color-6af50dff { color: #6af50d; }
+        .color-1ffa17ff { color: #1ffa17; }
+        .color-fdcd2eff { color: #fdcd2e; }
+        .color-fd2d2dff { color: #fd2d2d; }
+        .color-30c9ffff { color: #30c9ff; }
+        .color-ff4df6ff { color: #ff4df6; }
+        .color-23f7ffff { color: #23f7ff; }
+        .color-ffaa23ff { color: #ffaa23; }
+        .color-d2d2d2ff { color: #d2d2d2; }
+        a {
+            color: inherit !important;
+            font-weight: inherit;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizzatore Server Info SCP: Secret Laboratory</h1>
+    <label for="input">Incolla qui il contenuto del pastebin:</label>
+    <textarea id="input" placeholder="Incolla qui il testo raw..."></textarea>
+    <h2>Anteprima:</h2>
+    <div id="preview"></div>
+    <script>
+        function parseColorTag(color) {
+            // Supporta sia nomi che hex (con o senza ff finale)
+            color = color.replace('#','').toLowerCase();
+            if (color === 'white' || color === 'fff' || color === 'ffffffff') return 'color-white';
+            if (color === 'grey' || color === 'gray') return 'color-grey';
+            if (color === 'yellow' || color === 'ffff00') return 'color-yellow';
+            if (color === 'red' || color === 'ff0000') return 'color-red';
+            if (color === 'blue' || color === '30c9ff') return 'color-blue';
+            // Colori custom dal pastebin
+            return 'color-' + color.replace(/[^a-z0-9]/g,'');
+        }
+
+        function parseLine(line) {
+            // Gestione <align=center>
+            line = line.replace(/<align=center>/g, '<div class="center">').replace(/<\/align>/g, '</div>');
+            // Gestione <b>
+            line = line.replace(/<b>/g, '<span class="bold">').replace(/<\/b>/g, '</span>');
+            // Gestione <size=XX>
+            line = line.replace(/<size=(\d+)>/g, (m, size) => `<span class="size-${size}">`);
+            line = line.replace(/<\/size>/g, '</span>');
+            // Gestione <color=XXX>
+            line = line.replace(/<color=([#a-zA-Z0-9]+)>/g, (m, color) => `<span class="${parseColorTag(color)}">`);
+            line = line.replace(/<\/color>/g, '</span>');
+            // Gestione <link="url">testo</link>
+            // Cambia solo la sostituzione link per supportare tag annidati
+            line = line.replace(/<link="([^"]+)">((?:.|\n)*?)<\/link>/g, (m, url, text) => `<a href="${url}" target="_blank">${text}</a>`);
+            // Sostituisci caratteri speciali
+            line = line.replace(/•︎/g, '•');
+            // Se la linea è fatta solo di underscore (con eventuali spazi), forzala bianca
+            if (/^_+\s*$/.test(line.replace(/<[^>]+>/g, ''))) {
+                line = `<span class="color-white">${line}</span>`;
+            }
+            // Chiudi eventuali tag non chiusi (grezzo, ma evita errori grossolani)
+            // (Non perfetto, ma sufficiente per la maggior parte dei pastebin SCP:SL)
+            return line;
+        }
+
+        function parsePastebin(text) {
+            // Split per linee e applica il parser
+            return text.split('\n').map(parseLine).join('<br>');
+        }
+
+        // Funzioni per gestire i cookie
+        function setCookie(name, value, days) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days*24*60*60*1000));
+            document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + d.toUTCString() + ";path=/";
+        }
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return v ? decodeURIComponent(v.pop()) : "";
+        }
+
+        // Carica l'input salvato
+        const inputElem = document.getElementById('input');
+        const lastInput = getCookie('lastPastebinInput');
+        if (lastInput) inputElem.value = lastInput;
+
+        // Aggiorna anteprima e salva nei cookie
+        function updatePreviewAndCookie() {
+            document.getElementById('preview').innerHTML = parsePastebin(inputElem.value);
+            setCookie('lastPastebinInput', inputElem.value, 30);
+        }
+
+        inputElem.addEventListener('input', updatePreviewAndCookie);
+
+        // Mostra anteprima all'avvio se c'è input
+        updatePreviewAndCookie();
+    </script>
+</body>
+</html>
